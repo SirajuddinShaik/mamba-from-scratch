@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# Checkpoints & outputs (too large for git)
+outputs_*/
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Logs
+train.log
+training_log.json
+*.log
+
+# Cache
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.huggingface/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# W&B local
+wandb/
+
+# OS
+.DS_Store
+Thumbs.db
