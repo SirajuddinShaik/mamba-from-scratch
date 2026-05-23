@@ -1,6 +1,6 @@
 # Mamba-130M: Trained from Scratch
 
-> Clean PyTorch implementation of the Mamba architecture — trained end-to-end from random initialization on real streaming data.
+> Clean PyTorch implementation of Mamba — trained end-to-end from random weights on real data.
 
 <p align="center">
   <img src="https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg" alt="PyTorch">
@@ -11,14 +11,11 @@
 
 ---
 
-## What's Inside
+## What This Is
 
-- **Full Mamba implementation** from scratch — selective SSM, causal convolution, RMSNorm
-- **Streaming data pipeline** — C4 via HuggingFace `datasets` (no synthetic/toy data)
-- **Complete training loop** — AdamW, warmup + cosine LR decay, gradient clipping, bfloat16 AMP
-- **Checkpoint resume** — save/load model + optimizer state mid-training
-- **Evaluation suite** — WikiText-103, WikiText-2, C4 validation perplexity
-- **W&B integration** — real-time loss curves, artifact tracking
+A from-scratch PyTorch implementation of Mamba-130M. Not a wrapper around `mamba_ssm`. Not loading pretrained weights. Built the selective SSM, causal convolution, RMSNorm, and training loop — and trained it on real C4 data.
+
+Supports multiple model sizes: **130M, 370M, 790M, 1.4B, 2.8B** (configs ready, training tested on 130M).
 
 ---
 
@@ -28,11 +25,10 @@
 git clone https://github.com/SirajuddinShaik/mamba-from-scratch.git
 cd mamba-from-scratch
 
-# Install dependencies
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Train from scratch (50K steps, ~2 hours on RTX 4090)
+# Train from scratch
 python scripts/train_extended.py \
     --dataset c4 --max_steps 50000 \
     --batch_size 2 --grad_accum 4 --seq_len 1024
@@ -51,51 +47,81 @@ python scripts/evaluate.py --checkpoint outputs_extended/final_model.pt
 
 ## Architecture
 
-| Component | Spec |
-|-----------|------|
-| Parameters | **129.1M** |
-| Layers | 24 |
-| d_model | 768 |
-| d_state (SSM) | 16 |
-| Expand factor | 2 |
-| Conv kernel | 4 |
-| Vocab size | 50,257 (GPT-2 tokenizer) |
+| Size | Params | d_model | Layers | Status |
+|------|--------|---------|--------|--------|
+| **130M** | 129M | 768 | 24 | ✅ Tested on RTX 4090 |
+| **370M** | ~370M | 1024 | 48 | 🔄 Config ready |
+| **790M** | ~790M | 1536 | 48 | 🔄 Config ready |
+| **1.4B** | ~1.4B | 2048 | 48 | 🔄 Config ready |
+| **2.8B** | ~2.8B | 2560 | 64 | 🔄 Config ready |
+
+Vocab: 50,257 (GPT-2 tokenizer)
 
 ---
 
-## Training Results
+## Training Results (RTX 4090)
 
-### Run 3: Full Run (50K steps, ~410M tokens, 2h on RTX 4090) ✅
+### Full Run: 50K Steps, ~410M Tokens
 
 | Metric | Value |
 |--------|-------|
 | Dataset | C4 |
 | Steps | 50,000 |
 | Tokens | ~410M |
-| Batch | 2 × 4 grad accum = eff 8 |
-| LR | 6e-4 → 1e-5 (cosine) |
+| Batch | 2 × 4 grad accum = 8 |
 | Time | **124 min** |
 | Throughput | 54,940 tok/s |
 | Best Train Loss | **3.83** |
-| Best Train PPL | **~46** |
 
 **Evaluation:**
 
-| Split | Loss | Perplexity |
-|-------|------|-----------|
-| C4 (val) | 3.99 | **53.8** |
-| WikiText-103 | 4.89 | **132.3** |
-| WikiText-2 | 4.89 | **132.3** |
+| Split | Perplexity |
+|-------|-----------|
+| C4 (val) | **53.8** |
+| WikiText-103 | **132.3** |
+| WikiText-2 | **132.3** |
 
 **W&B Dashboard:** https://wandb.ai/sirajuddin-shaik-007/mamba-from-scratch/runs/a0i2sey4
 
-### Historical Runs
+### Learning Curve
 
-| Run | Steps | Tokens | C4 PPL | WikiText PPL | Notes |
-|-----|-------|--------|--------|-------------|-------|
-| Baseline | 20K | ~82M | 108.7 | 324.1 | Initial implementation |
-| Extended v1 | 10K | ~82M | 94.6 | 294.4 | Added grad accumulation |
-| **Full v2** | **50K** | **~410M** | **53.8** | **132.3** | Fresh optimizer on resume |
+| Check-in | Steps | C4 PPL | WikiText PPL |
+|----------|-------|--------|-------------|
+| Baseline | 20K | 108.7 | 324.1 |
+| Extended v1 | 10K | 94.6 | 294.4 |
+| **Full Run** | **50K** | **53.8** | **132.3** |
+
+---
+
+## What's Inside
+
+- **Full Mamba implementation** — selective SSM, causal conv, RMSNorm
+- **Streaming data pipeline** — C4 via HuggingFace (no toy data)
+- **Training loop** — AdamW, warmup + cosine LR, gradient clipping, bfloat16 AMP
+- **Checkpoint resume** — save/load model + optimizer state
+- **Evaluation** — WikiText-103, WikiText-2, C4 validation
+- **W&B logging** — real-time loss curves, artifact tracking
+- **Multi-size configs** — 130M to 2.8B ready to go
+
+---
+
+## Hardware Used
+
+- **GPU:** NVIDIA RTX 4090 (24GB)
+- **RAM:** 62GB
+- **OS:** Ubuntu 22.04
+- **Driver:** CUDA 12.9
+
+---
+
+## What's Next
+
+- [ ] Scale up to **370M** on RTX 4090 (need ZeRO-offload for larger batches)
+- [ ] Train **790M / 1.4B / 2.8B** on H200 / DGX Spark clusters
+- [ ] Add MoE routing to Mamba blocks
+- [ ] Experiment with different optimizers (AdamW vs Lion vs Muon)
+- [ ] Mixture of datasets (C4 + FineWeb + code)
+- [ ] Long-context training (seq_len 4096+)
 
 ---
 
@@ -104,35 +130,24 @@ python scripts/evaluate.py --checkpoint outputs_extended/final_model.pt
 ```
 mamba-from-scratch/
 ├── mamba/
-│   ├── models/
-│   │   ├── config.py           # Model configs (130M, 370M, 790M)
-│   │   └── mamba_lm.py         # Full MambaLM with generation
-│   ├── modules/
-│   │   ├── mamba_block.py      # Core selective SSM block
-│   │   └── rms_norm.py         # RMSNorm
-│   ├── ops/
-│   │   ├── selective_scan.py   # Naive selective scan
-│   │   └── triton/
-│   │       └── selective_scan_triton.py  # Triton kernel
+│   ├── models/           # Configs + MambaLM
+│   ├── modules/          # MambaBlock, RMSNorm
+│   ├── ops/              # Selective scan (naive + Triton)
 │   └── utils/
-│       └── torch_utils.py
 ├── scripts/
-│   ├── train_extended.py       # Main training script
-│   ├── evaluate.py             # Eval suite
-│   ├── eval_final.py           # Final benchmarking
-│   ├── eval_official.py        # Compare with HF Mamba
-│   ├── example_usage.py        # Inference demo
-│   └── test_mamba.py           # Unit tests
+│   ├── train_extended.py # Main training script
+│   ├── evaluate.py       # Eval suite
+│   ├── eval_final.py     # Benchmarking
+│   └── test_mamba.py     # Unit tests
 ├── requirements.txt
-├── setup.py
-└── README.md
+└── setup.py
 ```
 
 ---
 
-## Why Build From Scratch?
+## Why From Scratch?
 
-Most "from scratch" implementations are wrappers around `mamba_ssm` or `causal-conv1d`. This repo implements the core operations natively in PyTorch — the selective scan, the discretization, the causal convolution. You can trace every operation.
+Most "from scratch" repos are thin wrappers around `mamba_ssm`. This one implements the core ops in PyTorch — selective scan, discretization, causal convolution. You can trace every operation.
 
 ---
 
