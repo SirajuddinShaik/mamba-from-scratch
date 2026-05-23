@@ -45,3 +45,7 @@ wandb/
 # OS
 .DS_Store
 Thumbs.db
+scripts/archive/
+# Local outputs
+outputs_*/
+train.log
