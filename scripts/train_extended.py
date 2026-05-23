@@ -168,7 +168,10 @@ def train(args):
     if args.resume and Path(args.resume).exists():
         ckpt = torch.load(args.resume, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
-        opt.load_state_dict(ckpt["optimizer_state_dict"])
+        try:
+            opt.load_state_dict(ckpt["optimizer_state_dict"])
+        except KeyError:
+            print("   Warning: no optimizer state in checkpoint, starting fresh optimizer")
         start_step = ckpt.get("step", 0)
         best_loss = ckpt.get("best_loss", float("inf"))
         print(f"\n   Resumed from step {start_step}")
