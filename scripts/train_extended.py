@@ -7,10 +7,10 @@ Trains on larger corpora with:
 - Checkpoint resume support
 - Periodic evaluation on WikiText-103
 - Gradient accumulation for larger effective batch
-- FineWeb, FineWeb-Edu, C4, or mixed dataset support
+- C4, FineWeb, FineWeb-Edu, or mixed dataset support
 
 Usage:
-    python scripts/train_extended.py --dataset fineweb --max_steps 50000
+    python scripts/train_extended.py --dataset c4 --max_steps 50000
 """
 
 import os, sys, math, time, json, argparse
@@ -36,12 +36,14 @@ except ImportError:
 
 
 class StreamingDataset(IterableDataset):
-    """Universal streaming dataset supporting C4, FineWeb, and mixed."""
+    """Universal streaming dataset supporting C4, FineWeb, and WikiText."""
 
     SUPPORTED = {
         "c4": ("allenai/c4", "en"),
         "fineweb": ("HuggingFaceFW/fineweb", "sample-10BT"),
         "fineweb-edu": ("HuggingFaceFW/fineweb-edu", "sample-10BT"),
+        "wikitext103": ("wikitext", "wikitext-103-raw-v1"),
+        "wikitext2": ("wikitext", "wikitext-2-raw-v1"),
     }
 
     def __init__(self, name, tokenizer, seq_len=1024, split="train"):
@@ -340,7 +342,7 @@ def train(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extended Mamba Training")
     parser.add_argument("--model", default="130M")
-    parser.add_argument("--dataset", default="fineweb", choices=["c4", "fineweb", "fineweb-edu", "mixed"])
+    parser.add_argument("--dataset", default="c4", choices=["c4", "fineweb", "fineweb-edu", "mixed", "wikitext103", "wikitext2"])
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--seq_len", type=int, default=1024)
     parser.add_argument("--grad_accum", type=int, default=2)
